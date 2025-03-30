@@ -47,7 +47,10 @@ for (const [packageName, packageVersion] of Object.entries(dependencies)) {
         version,
         date: Date.parse(date),
       }))
-      .filter((item) => item.version !== "created");
+      // ignore as is the same as first recorded version
+      .filter((item) => item.version !== "created")
+      // ignore pre-release versions
+      .filter((item) => !item.version.includes("-"));
     // Maybe it does make more sense to sort by version code
     // but some packages skip back and forth between versions
     // e.g. express releases version 4.21.0 after 5.0.0
