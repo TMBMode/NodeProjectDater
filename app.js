@@ -28,7 +28,7 @@ try {
   process.exit(1);
 }
 
-console.log()
+console.log();
 
 let earliestPossibleDate = 0;
 let latestPossibleDate = new Date(3376727114000); // INF
@@ -48,11 +48,10 @@ for (const [packageName, packageVersion] of Object.entries(dependencies)) {
         date: Date.parse(date),
       }))
       .filter((item) => item.version !== "created");
-    const sortedVersions = versions.sort((a, b) =>
-      a.version
-        .replace(/\d+/g, (n) => +n + 100000)
-        .localeCompare(b.version.replace(/\d+/g, (n) => +n + 100000))
-    );
+    // Maybe it does make more sense to sort by version code
+    // but some packages skip back and forth between versions
+    // e.g. express releases version 4.21.0 after 5.0.0
+    const sortedVersions = versions.sort((a, b) => (a.date > b.date ? 1 : -1));
     let isFound = false;
     for (let i = 0; i < sortedVersions.length; i++) {
       const { version, date } = sortedVersions[i];
