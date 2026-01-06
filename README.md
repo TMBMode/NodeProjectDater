@@ -1,5 +1,8 @@
 # NodeProjectDater
-Get estimated date range of package.json to find out when a Node.js project had last updated its dependencies  
+Get estimated (pretty much precise!) date range of a package.json file, to find out when a Node.js project had last updated its dependencies  
+
+The more dependencies there are, the higher the precision is.
+> When using frameworks, the estimation often narrows down to a certain day!
 
 Useful when file timestamps are lost
 

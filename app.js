@@ -28,14 +28,20 @@ try {
   process.exit(1);
 }
 
+if (Object.keys(dependencies).length === 0) {
+  console.log("* No dependency found");
+  process.exit(1);
+}
+
 console.log();
 
 let earliestPossibleDate = 0;
 let latestPossibleDate = new Date(3376727114000); // INF
+let dateRanges = [];
 
 for (const [packageName, packageVersion] of Object.entries(dependencies)) {
   if (packageVersion === "latest") {
-    console.log(`Skipping ${packageName} since it's using the latest version`);
+    console.log(`${packageName} * Skip as using latest`);
     continue;
   }
   const targetVersion = packageVersion.replace("^", "").replace("~", "");
@@ -54,31 +60,30 @@ for (const [packageName, packageVersion] of Object.entries(dependencies)) {
     // Maybe it does make more sense to sort by version code
     // but some packages skip back and forth between versions
     // e.g. express releases version 4.21.0 after 5.0.0
+    // update: we're adding a "version up" check when looking for succeeding version
     const sortedVersions = versions.sort((a, b) => (a.date > b.date ? 1 : -1));
     let isFound = false;
     for (let i = 0; i < sortedVersions.length; i++) {
       const { version, date } = sortedVersions[i];
       if (version === targetVersion) {
-        if (earliestPossibleDate < date) {
-          console.log(
-            `${packageName} ${version}\n  MIN ${formatDate(earliestPossibleDate)} -> ${formatDate(date)}`
-          );
-          earliestPossibleDate = date;
+        let nextDate;
+        for (let j = i + 1; j < sortedVersions.length; j++) {
+          if (compareSemver(sortedVersions[j].version, version) > 0) {
+            nextDate = sortedVersions[j].date;
+            break;
+          }
         }
-        const nextDate = sortedVersions[i + 1]?.date;
-        const nextVersion = sortedVersions[i + 1]?.version;
-        if (nextDate && latestPossibleDate > nextDate) {
-          console.log(
-            `${packageName} ${nextVersion}\n  MAX ${formatDate(latestPossibleDate)} -> ${formatDate(nextDate)}`
-          );
-          latestPossibleDate = nextDate;
-        }
+        const rangeEnd = nextDate ?? latestPossibleDate;
+        dateRanges.push({ packageName, start: date, end: rangeEnd });
+        console.log(
+          `${packageName} | ${version} | ${formatDate(date)} -> ${formatDate(rangeEnd)}`
+        );
         isFound = true;
         break;
       }
     }
     if (!isFound) {
-      console.log(`No matching version found for ${packageName}`);
+      console.log(`${packageName} * Not found`);
     }
   } catch (error) {
     console.log("Invalid JSON output");
@@ -86,10 +91,28 @@ for (const [packageName, packageVersion] of Object.entries(dependencies)) {
   }
 }
 
-console.log(
-  `\n${"-".repeat(30)}\n\nEstimated date range:\n\n> ${formatDate(
+if (dateRanges.length > 0) {
+  earliestPossibleDate = dateRanges.reduce(
+    (current, range) => (current > range.start ? current : range.start),
     earliestPossibleDate
-  )}\n< ${formatDate(latestPossibleDate)}\n`
+  );
+  const validEnds = dateRanges
+    .map((range) => range.end)
+    .filter((end) => end >= earliestPossibleDate);
+  if (validEnds.length > 0) {
+    latestPossibleDate = validEnds.reduce(
+      (current, end) => (current < end ? current : end),
+      latestPossibleDate
+    );
+  }
+}
+
+const cyan = (text) => `\x1b[96m${text}\x1b[0m`;
+
+console.log(
+  `\n${"-".repeat(30)}\n\nAccording to dependency versions,\nThis package.json was last updated within the date range:\n\n~ ${cyan(
+    formatDate(earliestPossibleDate)
+  )} -> ${cyan(formatDate(latestPossibleDate))}\n`
 );
 
 function formatDate(timestamp) {
@@ -98,4 +121,10 @@ function formatDate(timestamp) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function compareSemver(a, b) {
+  return a
+    .replace(/\d+/g, (n) => String(n).padStart(6, "0"))
+    .localeCompare(b.replace(/\d+/g, (n) => String(n).padStart(6, "0")));
 }
