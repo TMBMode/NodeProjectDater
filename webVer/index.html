@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Node Project Dater</title>
+    <link rel="icon" type="image/png" href="icon.png" />
+    <style>
+      :root {
+        --bg: #050d08;
+        --bg-deep: #020806;
+        --panel: rgba(5, 18, 12, 0.96);
+        --panel-soft: rgba(8, 30, 20, 0.9);
+        --border: rgba(70, 255, 175, 0.28);
+        --text: #c9ffe3;
+        --muted: #7fd8ae;
+        --accent: #52ffb0;
+        --warning: #ffbf69;
+        --error: #ff7a7a;
+        --page-hue: 0deg;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        color: var(--text);
+        font-family: "IBM Plex Mono", "Fira Code", "SFMono-Regular", "Menlo",
+          "Consolas", monospace;
+        background: #111111;
+        filter: hue-rotate(var(--page-hue));
+      }
+
+      .shell {
+        width: min(1100px, 94vw);
+        height: min(86vh, 820px);
+        display: flex;
+        flex-direction: column;
+        border-radius: 18px;
+        border: 1px solid var(--border);
+        background: var(--panel);
+        overflow: hidden;
+        position: relative;
+      }
+
+      .shell__bar {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 14px 18px;
+        background: linear-gradient(90deg, rgba(7, 32, 22, 0.98), rgba(6, 20, 14, 0.95));
+        border-bottom: 1px solid rgba(82, 255, 176, 0.18);
+      }
+
+      .shell__dots {
+        display: flex;
+        gap: 8px;
+        filter: hue-rotate(calc(-1 * var(--page-hue)));
+      }
+
+      .shell__dot {
+        width: 11px;
+        height: 11px;
+        border-radius: 50%;
+        background: rgb(82, 255, 176);
+        filter: hue-rotate(var(--dot-hue, 0deg));
+        cursor: pointer;
+      }
+
+      .shell__title {
+        flex: 1;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.16em;
+        color: var(--muted);
+      }
+
+      .shell__status {
+        font-size: 0.75rem;
+        letter-spacing: 0.16em;
+        color: var(--accent);
+        text-transform: uppercase;
+      }
+
+      .shell__screen {
+        flex: 1;
+        padding: 22px;
+        background:
+          linear-gradient(180deg, rgba(6, 26, 18, 0.7) 0%, rgba(5, 16, 12, 0.98) 100%),
+          repeating-linear-gradient(90deg, rgba(82, 255, 176, 0.02) 0, rgba(82, 255, 176, 0.02) 1px, transparent 1px, transparent 4px);
+        overflow-y: auto;
+        scroll-behavior: smooth;
+      }
+
+      .stream {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 0.98rem;
+        line-height: 1.5;
+        min-height: 100%;
+      }
+
+      .line {
+        white-space: pre-wrap;
+        min-height: 1.2em;
+      }
+
+      .line a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+      }
+
+      .line a:hover {
+        color: var(--accent);
+      }
+
+      .line.dim {
+        color: var(--muted);
+      }
+
+      .line.error {
+        color: var(--error);
+      }
+
+      .line.warning {
+        color: var(--warning);
+      }
+
+      .accent {
+        color: var(--accent);
+      }
+
+      .input-line {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .prompt {
+        color: var(--accent);
+        font-weight: 600;
+      }
+
+      .input {
+        min-height: 1.4em;
+        white-space: pre-wrap;
+        outline: none;
+        caret-color: var(--accent);
+      }
+
+      .input:empty::before {
+        content: attr(data-placeholder);
+        color: rgba(127, 216, 174, 0.55);
+      }
+
+      .input.is-history {
+        color: var(--text);
+      }
+
+      .shell.is-running .input {
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      .drop-overlay {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(5, 13, 8, 0.85);
+        color: var(--accent);
+        font-size: 1.1rem;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+      }
+
+      body.is-dragover .drop-overlay {
+        opacity: 1;
+      }
+
+      .drop-message {
+        padding: 18px 28px;
+        border: 1px dashed rgba(82, 255, 176, 0.6);
+        border-radius: 12px;
+        background: rgba(4, 18, 12, 0.8);
+      }
+
+      @media (max-width: 720px) {
+        body {
+          padding: 14px;
+        }
+
+        .shell {
+          height: 90vh;
+        }
+
+        .shell__title {
+          font-size: 0.75rem;
+          letter-spacing: 0.1em;
+        }
+
+        .shell__screen {
+          padding: 16px;
+        }
+
+        .input-line {
+          grid-template-columns: 1fr;
+          gap: 6px;
+        }
+      }
+
+      @media (orientation: portrait) {
+        body {
+          padding: 0;
+        }
+
+        .shell {
+          width: 100vw;
+          height: 100vh;
+          border-radius: 0;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell" id="shell">
+      <div class="shell__bar">
+        <div class="shell__dots">
+          <span class="shell__dot"></span>
+          <span class="shell__dot"></span>
+          <span class="shell__dot"></span>
+        </div>
+        <div class="shell__title">NodeProjectDater</div>
+        <div class="shell__status" id="status">idle</div>
+      </div>
+      <div class="shell__screen" id="terminal">
+        <div class="stream" id="stream" aria-live="polite" aria-relevant="additions"></div>
+      </div>
+    </main>
+    <div class="drop-overlay" id="dropOverlay">
+      <div class="drop-message">Drop to insert</div>
+    </div>
+    <script src="app.js"></script>
+  </body>
+</html>

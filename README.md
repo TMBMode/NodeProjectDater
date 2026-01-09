@@ -6,7 +6,14 @@ The more dependencies there are, the higher the precision is.
 
 Useful when file timestamps are lost
 
-## Usage
+## Standalone Web Version
+
+> Preferred, no setup needed
+
+Launch `/webVer/index.html` in the browser
+
+## CLI Version
+
 ```bash
 npm run date /path/to/package.json
 ```
